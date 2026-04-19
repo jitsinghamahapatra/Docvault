@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DocVault - Admin Dashboard</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/css/style.css?v=4">
+    <link rel="icon" type="image/png" href="/css/DocVault.png">
+</head>
+<body>
+    <!-- Page Loader -->
+    <div id="page-loader">
+        <div class="loader-logo"><i class="fa-solid fa-folder-open"></i> DocVault</div>
+        <div class="loader-grid">
+            <div class="lg-cell"></div><div class="lg-cell"></div><div class="lg-cell"></div>
+            <div class="lg-cell"></div><div class="lg-cell"></div><div class="lg-cell"></div>
+            <div class="lg-cell"></div><div class="lg-cell"></div><div class="lg-cell"></div>
+        </div>
+        <span class="loader-text">LOADING ADMIN...</span>
+    </div>
+    
+    <header class="solid-header">
+        <div class="logo">
+            <i class="fa-solid fa-folder-open"></i> DocVault
+        </div>
+        <nav>
+            <a href="/" class="btn-text" target="_blank"><i class="fa-solid fa-eye"></i> View Live</a>
+            <button id="logoutBtn" class="btn-outline">Logout</button>
+        </nav>
+    </header>
+
+    <main class="container admin-container">
+        
+        <div class="grid layout-sidebar">
+            <aside class="sidebar">
+                <div class="section-solid">
+                    <h3 class="section-title"><i class="fa-solid fa-upload"></i> Upload Doc</h3>
+                    
+                    <form id="smartUploadForm">
+                        <div class="form-group">
+                            <label>Document Name</label>
+                            <input type="text" id="docName" class="input-base" placeholder="Enter name (Optional)">
+                        </div>
+
+                        <!-- Unified Zone -->
+                        <div class="upload-zone" id="dropZone">
+                            <i class="fa-solid fa-file-arrow-up"></i>
+                            <span class="upload-zone-text">Select File</span>
+                            <span class="upload-zone-sub">Drag & drop or Click to browse</span>
+                            <input type="file" id="fileInput" hidden>
+                        </div>
+
+                        <!-- Feedback Area for selected file -->
+                        <div id="fileFeedback" class="upload-feedback hidden">
+                            <div class="feedback-details">
+                                <h4 id="fbName">filename.pdf</h4>
+                                <p id="fbSize">2.4 MB</p>
+                            </div>
+                            <i class="fa-solid fa-times remove-file-btn" id="removeFileBtn"></i>
+                        </div>
+
+                        <!-- Upload Progress Bar -->
+                        <div id="uploadProgressWrap" class="upload-progress-wrap hidden">
+                            <div class="upload-progress-bar-bg">
+                                <div id="uploadProgressBar" class="upload-progress-bar"></div>
+                            </div>
+                            <span id="uploadProgressPct" class="upload-progress-pct">0%</span>
+                        </div>
+
+                        <div class="divider"></div>
+
+                        <div class="form-group" id="urlGroup">
+                            <label>Or Paste URL</label>
+                            <input type="url" id="docUrl" class="input-base" placeholder="https://...">
+                        </div>
+
+                        <button type="submit" class="btn-primary full-width mt-10">Upload Document</button>
+                    </form>
+                </div>
+
+                <div class="section-solid" style="margin-top: 2rem;">
+                    <h3 class="section-title"><i class="fa-solid fa-shield-halved"></i> Security</h3>
+                    <form id="resetPassForm">
+                        <div class="form-group">
+                            <label>Current Password</label>
+                            <input type="password" id="currentPass" class="input-base" required>
+                        </div>
+                        <div class="form-group">
+                            <label>New Password</label>
+                            <input type="password" id="newPass" class="input-base" required>
+                        </div>
+                        <button type="submit" class="btn-secondary full-width">Reset Password</button>
+                    </form>
+                </div>
+            </aside>
+
+            <section class="main-content section-solid">
+                <div class="flex-between">
+                    <h2 class="section-title"><i class="fa-solid fa-table-list"></i> Manage Documents</h2>
+                    <button id="refreshBtn" class="btn-icon"><i class="fa-solid fa-rotate-right"></i></button>
+                </div>
+                
+                <div class="table-responsive">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Type</th>
+                                <th>Size</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="adminDocList">
+                            <!-- Injected rows -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </div>
+
+    </main>
+
+    <!-- Notification Toast -->
+    <div id="toast" class="toast"><i class="fa-solid fa-bell"></i> <span id="toastMsg"></span></div>
+
+    <script src="/js/admin.js?v=4"></script>
+</body>
+</html>

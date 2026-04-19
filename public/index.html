@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DocVault - Jit Singha Mahapatra</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/css/style.css?v=5">
+    <link rel="icon" type="image/png" href="/css/DocVault.png">
+</head>
+<body>
+    <!-- Page Loader -->
+    <div id="page-loader">
+        <div class="loader-logo"><i class="fa-solid fa-folder-open"></i> DocVault</div>
+        <div class="loader-grid">
+            <div class="lg-cell"></div><div class="lg-cell"></div><div class="lg-cell"></div>
+            <div class="lg-cell"></div><div class="lg-cell"></div><div class="lg-cell"></div>
+            <div class="lg-cell"></div><div class="lg-cell"></div><div class="lg-cell"></div>
+        </div>
+        <span class="loader-text">LOADING FILES...</span>
+    </div>
+    
+    <header class="solid-header">
+        <div class="logo">
+            <i class="fa-solid fa-folder-open"></i> DocVault
+        </div>
+        <nav>
+            <a href="/login" class="btn-primary">Admin Access</a>
+        </nav>
+    </header>
+
+    <main class="container">
+        <div class="hero">
+            <h1 class="hero-title">File Archive.</h1>
+            <p class="hero-subtitle">Secure, fast, and premium document viewing interface.</p>
+        </div>
+
+        <div style="display: flex; gap: 1rem; margin-bottom: 2rem; justify-content: flex-end; flex-wrap: wrap; align-items: center;">
+            <div class="search-group">
+                <input type="text" id="searchInput" placeholder="Search by name..." class="input-base">
+                <button id="searchBtn" class="btn-primary search-btn"><i class="fa-solid fa-magnifying-glass"></i></button>
+            </div>
+            
+            <select id="sizeFilter" class="input-base small-select">
+                <option value="all">All Sizes</option>
+                <option value="1-20">1 – 20 KB</option>
+                <option value="21-50">21 – 50 KB</option>
+                <option value="51-100">51 – 100 KB</option>
+                <option value="101-500">101 – 500 KB</option>
+                <option value="501-1024">501 KB – 1 MB</option>
+            </select>
+        </div>
+
+        <div class="grid" id="document-grid">
+            <!-- Cards will be injected here via JS -->
+        </div>
+    </main>
+
+    <footer style="text-align: center; padding: 2rem; font-family: 'VT323', monospace; font-size: 1.2rem; color: var(--text-muted); margin-top: 4rem;">
+        Made By Jit Singha Mahapatra
+    </footer>
+
+    <script src="/js/main.js?v=5"></script>
+</body>
+</html>

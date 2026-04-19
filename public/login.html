@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DocVault - Admin Login</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="icon" type="image/png" href="/css/DocVault.png">
+</head>
+<body class="center-content">
+
+    <div class="solid-card login-card">
+        <div class="auth-header">
+            <i class="fa-solid fa-server auth-icon"></i>
+            <h2>System Access</h2>
+            <p class="pixel-text">Enter credentials to proceed</p>
+        </div>
+        
+        <form id="loginForm" class="auth-form">
+            <div class="form-group">
+                <label>System Password</label>
+                <div class="input-wrapper">
+                    <i class="fa-solid fa-key"></i>
+                    <input type="password" id="password" placeholder="••••••••" required>
+                </div>
+            </div>
+
+            <button type="submit" class="btn-primary full-width">
+                <span>Login</span> <i class="fa-solid fa-arrow-right"></i>
+            </button>
+            <div id="loginError" class="error-msg"></div>
+        </form>
+
+        <div class="back-link">
+            <a href="/"><i class="fa-solid fa-arrow-left"></i> Return Home</a>
+        </div>
+    </div>
+
+    <script src="/js/login.js"></script>
+</body>
+</html>

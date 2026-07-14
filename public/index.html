@@ -57,13 +57,12 @@
     </main>
 
     <!-- PIN Verification Modal -->
-    <div id="pinModal" class="modal-backdrop hidden">
+    <div id="pinModal" class="modal-backdrop">
         <div class="modal-content">
-            <button id="closeModalBtn" class="btn-close">&times;</button>
             <div class="modal-header">
                 <i class="fa-solid fa-lock modal-icon"></i>
-                <h2>Secure Access</h2>
-                <p>Please enter the 4-digit security PIN to view or download this document.</p>
+                <h2>DocVault Locked</h2>
+                <p>Please enter the 4-digit security PIN to access the file vault.</p>
             </div>
             <div class="pin-input-group">
                 <input type="password" inputmode="numeric" pattern="[0-9]*" maxlength="1" class="pin-digit" autocomplete="off">
@@ -72,7 +71,7 @@
                 <input type="password" inputmode="numeric" pattern="[0-9]*" maxlength="1" class="pin-digit" autocomplete="off">
             </div>
             <div id="pinErrorMsg" class="pin-error-msg hidden">Incorrect PIN. Please try again.</div>
-            <button id="verifyPinBtn" class="btn-primary full-width">Verify & Open</button>
+            <button id="verifyPinBtn" class="btn-primary full-width">Verify & Unlock</button>
         </div>
     </div>
 

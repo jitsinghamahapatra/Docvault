@@ -1,5 +1,4 @@
 // Global Mouse Click Ripple Effect (Pixel Burst)
-// Uses clientX/Y with position:fixed so scroll position doesn't offset it
 document.addEventListener('click', function(e) {
     let ripple = document.createElement('div');
     ripple.classList.add('ripple');
@@ -9,7 +8,7 @@ document.addEventListener('click', function(e) {
     setTimeout(() => { ripple.remove(); }, 600);
 });
 
-// Loader helper — called after docs are rendered (or on error)
+// Loader helper
 function hideLoader() {
     const loader = document.getElementById('page-loader');
     if (loader) {
@@ -18,26 +17,204 @@ function hideLoader() {
     }
 }
 
-// Safety fallback: hide loader after 8s no matter what
 const loaderSafetyTimer = setTimeout(hideLoader, 8000);
 
-// Load Documents on Homepage
 let globalDocs = [];
+let isAdminUser = false;
+
+// Load Documents
+async function loadDocuments(pin) {
+    try {
+        const url = pin ? `/api/documents?pin=${encodeURIComponent(pin)}` : '/api/documents';
+        const res = await fetch(url);
+        if (!res.ok) {
+            throw new Error('Unauthorized');
+        }
+        globalDocs = await res.json();
+        applyFilters();
+        return true;
+    } catch (error) {
+        console.error('Error fetching docs', error);
+        return false;
+    }
+}
 
 document.addEventListener('DOMContentLoaded', async () => {
     const grid = document.getElementById('document-grid');
-    if (!grid) return;
+    const pinModal = document.getElementById('pinModal');
+    const verifyPinBtn = document.getElementById('verifyPinBtn');
+    const pinDigits = Array.from(document.querySelectorAll('.pin-digit'));
+    const pinErrorMsg = document.getElementById('pinErrorMsg');
 
+    if (!grid || !pinModal) return;
+
+    // Check Admin status on load to allow bypass
     try {
-        const res = await fetch('/api/documents');
-        globalDocs = await res.json();
-        applyFilters(); // ← respects any pre-selected filter AND applies size sort
-    } catch (error) {
-        console.error('Error fetching docs', error);
-    } finally {
-        // Hide loader only after docs are rendered (success or error)
-        clearTimeout(loaderSafetyTimer);
-        hideLoader();
+        const res = await fetch('/api/auth/status');
+        const data = await res.json();
+        isAdminUser = res.ok && data.isAuthenticated;
+    } catch (e) {
+        // ignore
+    }
+
+    let unlocked = false;
+
+    if (isAdminUser) {
+        unlocked = await loadDocuments(null);
+    } else {
+        const savedPin = sessionStorage.getItem('docVaultPin');
+        if (savedPin) {
+            unlocked = await loadDocuments(savedPin);
+            if (!unlocked) {
+                sessionStorage.removeItem('docVaultPin');
+            }
+        }
+    }
+
+    // Hide main page loader after check finishes
+    clearTimeout(loaderSafetyTimer);
+    hideLoader();
+
+    if (unlocked) {
+        pinModal.classList.add('hidden');
+    } else {
+        // Show lock screen and focus first input
+        openPinModal();
+    }
+
+    // Intercept click on document View / Download links
+    grid.addEventListener('click', function(e) {
+        const anchor = e.target.closest('.doc-actions a');
+        if (!anchor) return;
+
+        if (isAdminUser) {
+            return; // Admin bypass
+        }
+
+        const savedPin = sessionStorage.getItem('docVaultPin');
+        if (savedPin) {
+            e.preventDefault();
+            navigateWithPin(anchor, savedPin);
+        } else {
+            e.preventDefault();
+            openPinModal();
+        }
+    });
+
+    function navigateWithPin(anchor, pin) {
+        const targetUrl = new URL(anchor.href, window.location.origin);
+        targetUrl.searchParams.set('pin', pin);
+
+        const tempLink = document.createElement('a');
+        tempLink.href = targetUrl.toString();
+        
+        if (anchor.hasAttribute('download')) {
+            tempLink.setAttribute('download', anchor.getAttribute('download') || 'file');
+        } else {
+            tempLink.target = '_blank';
+        }
+        
+        document.body.appendChild(tempLink);
+        tempLink.click();
+        tempLink.remove();
+    }
+
+    // OTP Inputs navigation
+    pinDigits.forEach((input, idx) => {
+        input.addEventListener('input', (e) => {
+            const value = e.target.value;
+            if (value.length > 0) {
+                e.target.value = value.charAt(value.length - 1);
+                if (idx < pinDigits.length - 1) {
+                    pinDigits[idx + 1].focus();
+                }
+            }
+        });
+
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Backspace') {
+                if (e.target.value === '' && idx > 0) {
+                    pinDigits[idx - 1].focus();
+                    pinDigits[idx - 1].value = '';
+                } else {
+                    e.target.value = '';
+                }
+            } else if (e.key === 'Enter') {
+                e.preventDefault();
+                verifyPinBtn.click();
+            }
+        });
+
+        input.addEventListener('focus', () => {
+            input.select();
+        });
+
+        input.addEventListener('paste', (e) => {
+            e.preventDefault();
+            const pasteData = (e.clipboardData || window.clipboardData).getData('text').trim();
+            if (/^\d+$/.test(pasteData)) {
+                for (let i = 0; i < pinDigits.length; i++) {
+                    if (pasteData[i]) {
+                        pinDigits[i].value = pasteData[i];
+                    }
+                }
+                pinDigits[Math.min(pasteData.length - 1, pinDigits.length - 1)].focus();
+            }
+        });
+    });
+
+    function openPinModal() {
+        pinModal.classList.remove('hidden');
+        pinErrorMsg.classList.add('hidden');
+        pinDigits.forEach(input => input.value = '');
+        setTimeout(() => pinDigits[0].focus(), 100);
+    }
+
+    // Verification Logic
+    verifyPinBtn.addEventListener('click', async () => {
+        const pin = pinDigits.map(input => input.value).join('');
+        if (pin.length !== 4) {
+            showError('Please enter a 4-digit PIN.');
+            return;
+        }
+
+        try {
+            verifyPinBtn.disabled = true;
+            verifyPinBtn.textContent = 'Verifying...';
+            
+            const res = await fetch('/api/auth/verify-pin', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ pin })
+            });
+
+            const data = await res.json();
+            
+            if (res.ok && data.success) {
+                // Try to load documents with the newly verified PIN
+                const loadSuccess = await loadDocuments(pin);
+                if (loadSuccess) {
+                    sessionStorage.setItem('docVaultPin', pin);
+                    pinModal.classList.add('hidden');
+                } else {
+                    showError('Failed to load documents.');
+                }
+            } else {
+                showError(data.error || 'Incorrect PIN.');
+            }
+        } catch (err) {
+            showError('Connection error. Try again.');
+        } finally {
+            verifyPinBtn.disabled = false;
+            verifyPinBtn.textContent = 'Verify & Unlock';
+        }
+    });
+
+    function showError(msg) {
+        pinErrorMsg.textContent = msg;
+        pinErrorMsg.classList.remove('hidden');
+        pinDigits.forEach(input => input.value = '');
+        pinDigits[0].focus();
     }
 
     const searchInput = document.getElementById('searchInput');
@@ -53,9 +230,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 function applyFilters() {
     const searchTerm = document.getElementById('searchInput').value.toLowerCase();
-    const sizeVal = document.getElementById('sizeFilter').value; // "all" | "1-20" | "21-50" etc.
+    const sizeVal = document.getElementById('sizeFilter').value;
 
-    // Parse the range from the value string (e.g. "21-50" → minKb=21, maxKb=50)
     let minKb = 0, maxKb = Infinity;
     if (sizeVal !== 'all') {
         const parts = sizeVal.split('-');
@@ -64,24 +240,19 @@ function applyFilters() {
     }
 
     let filtered = globalDocs.filter(doc => {
-        // Search filter
         if (!doc.title.toLowerCase().includes(searchTerm)) return false;
-
-        // Size range filter — only applies to file type, not URLs
         if (sizeVal !== 'all' && doc.type === 'file') {
             const docKb = Number(doc.size) / 1024;
             if (docKb < minKb || docKb > maxKb) return false;
         }
-
         return true;
     });
 
-    // When a range is active: sort highest KB first → lowest KB last
     if (sizeVal !== 'all') {
         filtered.sort((a, b) => {
             const sizeA = Number(a.size) || 0;
             const sizeB = Number(b.size) || 0;
-            return sizeB - sizeA; // e.g. 97.1 KB before 82.4 KB
+            return sizeB - sizeA;
         });
     }
 
@@ -102,7 +273,6 @@ function renderDocs(docs) {
         card.classList.add('doc-card');
         card.style.animationDelay = `${(index % 10) * 0.1}s`;
 
-        // Determine file icon based on mimeType or originalName extension
         let iconClass = 'fa-solid fa-file';
         let iconBgClass = '';
         if (doc.type === 'url') {
@@ -160,182 +330,3 @@ function renderDocs(docs) {
         grid.appendChild(card);
     });
 }
-
-// PIN Protection System Front-end controller
-let pendingAnchor = null;
-let isAdminUser = false;
-
-// Check Admin status on load to allow bypass
-async function checkAdminStatus() {
-    try {
-        const res = await fetch('/api/auth/status');
-        const data = await res.json();
-        isAdminUser = res.ok && data.isAuthenticated;
-    } catch (e) {
-        // ignore
-    }
-}
-checkAdminStatus();
-
-document.addEventListener('DOMContentLoaded', () => {
-    const grid = document.getElementById('document-grid');
-    const pinModal = document.getElementById('pinModal');
-    const closeModalBtn = document.getElementById('closeModalBtn');
-    const verifyPinBtn = document.getElementById('verifyPinBtn');
-    const pinDigits = Array.from(document.querySelectorAll('.pin-digit'));
-    const pinErrorMsg = document.getElementById('pinErrorMsg');
-
-    if (!grid || !pinModal) return;
-
-    // Intercept click on document View / Download links
-    grid.addEventListener('click', function(e) {
-        const anchor = e.target.closest('.doc-actions a');
-        if (!anchor) return;
-
-        // Admin bypass
-        if (isAdminUser) {
-            return; // Let default action proceed
-        }
-
-        const savedPin = sessionStorage.getItem('docVaultPin');
-        if (savedPin) {
-            // Append pin to URL and navigate
-            e.preventDefault();
-            navigateWithPin(anchor, savedPin);
-            return;
-        }
-
-        // Prompt for PIN
-        e.preventDefault();
-        pendingAnchor = anchor;
-        openPinModal();
-    });
-
-    function navigateWithPin(anchor, pin) {
-        const targetUrl = new URL(anchor.href, window.location.origin);
-        targetUrl.searchParams.set('pin', pin);
-
-        const tempLink = document.createElement('a');
-        tempLink.href = targetUrl.toString();
-        
-        if (anchor.hasAttribute('download')) {
-            tempLink.setAttribute('download', anchor.getAttribute('download') || 'file');
-        } else {
-            tempLink.target = '_blank';
-        }
-        
-        document.body.appendChild(tempLink);
-        tempLink.click();
-        tempLink.remove();
-    }
-
-    // OTP Inputs navigation
-    pinDigits.forEach((input, idx) => {
-        // Handle inputting a digit
-        input.addEventListener('input', (e) => {
-            const value = e.target.value;
-            // Only keep last char if they typed something
-            if (value.length > 0) {
-                e.target.value = value.charAt(value.length - 1);
-                if (idx < pinDigits.length - 1) {
-                    pinDigits[idx + 1].focus();
-                }
-            }
-        });
-
-        // Handle keys (Backspace to delete/go back, Enter to submit)
-        input.addEventListener('keydown', (e) => {
-            if (e.key === 'Backspace') {
-                if (e.target.value === '' && idx > 0) {
-                    pinDigits[idx - 1].focus();
-                    pinDigits[idx - 1].value = '';
-                } else {
-                    e.target.value = '';
-                }
-            } else if (e.key === 'Enter') {
-                e.preventDefault();
-                verifyPinBtn.click();
-            }
-        });
-
-        // Auto-select text on focus for easier overwriting
-        input.addEventListener('focus', () => {
-            input.select();
-        });
-
-        // Handle paste events (e.g. paste '2511')
-        input.addEventListener('paste', (e) => {
-            e.preventDefault();
-            const pasteData = (e.clipboardData || window.clipboardData).getData('text').trim();
-            if (/^\d+$/.test(pasteData)) {
-                for (let i = 0; i < pinDigits.length; i++) {
-                    if (pasteData[i]) {
-                        pinDigits[i].value = pasteData[i];
-                    }
-                }
-                pinDigits[Math.min(pasteData.length - 1, pinDigits.length - 1)].focus();
-            }
-        });
-    });
-
-    function openPinModal() {
-        pinModal.classList.remove('hidden');
-        pinErrorMsg.classList.add('hidden');
-        pinDigits.forEach(input => input.value = '');
-        setTimeout(() => pinDigits[0].focus(), 100);
-    }
-
-    function closePinModal() {
-        pinModal.classList.add('hidden');
-        pendingAnchor = null;
-    }
-
-    closeModalBtn.addEventListener('click', closePinModal);
-    pinModal.addEventListener('click', (e) => {
-        if (e.target === pinModal) closePinModal();
-    });
-
-    // Verification Logic
-    verifyPinBtn.addEventListener('click', async () => {
-        const pin = pinDigits.map(input => input.value).join('');
-        if (pin.length !== 4) {
-            showError('Please enter a 4-digit PIN.');
-            return;
-        }
-
-        try {
-            verifyPinBtn.disabled = true;
-            verifyPinBtn.textContent = 'Verifying...';
-            
-            const res = await fetch('/api/auth/verify-pin', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ pin })
-            });
-
-            const data = await res.json();
-            
-            if (res.ok && data.success) {
-                sessionStorage.setItem('docVaultPin', pin);
-                closePinModal();
-                if (pendingAnchor) {
-                    navigateWithPin(pendingAnchor, pin);
-                }
-            } else {
-                showError(data.error || 'Incorrect PIN.');
-            }
-        } catch (err) {
-            showError('Connection error. Try again.');
-        } finally {
-            verifyPinBtn.disabled = false;
-            verifyPinBtn.textContent = 'Verify & Open';
-        }
-    });
-
-    function showError(msg) {
-        pinErrorMsg.textContent = msg;
-        pinErrorMsg.classList.remove('hidden');
-        pinDigits.forEach(input => input.value = '');
-        pinDigits[0].focus();
-    }
-});

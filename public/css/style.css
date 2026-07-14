@@ -680,15 +680,20 @@ h1, h2, h3, h4, .pixel-text {
 .modal-backdrop {
     position: fixed;
     inset: 0;
-    background: rgba(26, 26, 36, 0.6);
-    backdrop-filter: blur(4px);
+    background: var(--bg-light);
+    background-image: radial-gradient(circle, #e5e7eb 2px, transparent 2px);
+    background-size: 30px 30px;
     display: flex;
     align-items: center;
     justify-content: center;
     z-index: 9999;
-    transition: opacity 0.3s ease, visibility 0.3s ease;
+    transform: translateY(0);
+    opacity: 1;
+    visibility: visible;
+    transition: transform 0.6s cubic-bezier(0.85, 0, 0.15, 1), opacity 0.6s ease, visibility 0.6s ease;
 }
 .modal-backdrop.hidden {
+    transform: translateY(-100%);
     opacity: 0;
     visibility: hidden;
     pointer-events: none;

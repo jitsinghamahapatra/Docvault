@@ -80,6 +80,17 @@
                 </div>
 
                 <div class="section-solid" style="margin-top: 2rem;">
+                    <h3 class="section-title"><i class="fa-solid fa-hard-drive"></i> Storage Status</h3>
+                    <div class="storage-info">
+                        <span id="storageText">0.00 MB / 512 MB Used</span>
+                        <div class="storage-bar-bg">
+                            <div id="storageBar" class="storage-bar" style="width: 0%"></div>
+                        </div>
+                        <span id="storagePercentText" class="storage-percent">0% Used</span>
+                    </div>
+                </div>
+
+                <div class="section-solid" style="margin-top: 2rem;">
                     <h3 class="section-title"><i class="fa-solid fa-shield-halved"></i> Security</h3>
                     <form id="resetPassForm">
                         <div class="form-group">
@@ -91,6 +102,21 @@
                             <input type="password" id="newPass" class="input-base" required>
                         </div>
                         <button type="submit" class="btn-secondary full-width">Reset Password</button>
+                    </form>
+                </div>
+
+                <div class="section-solid" style="margin-top: 2rem;">
+                    <h3 class="section-title"><i class="fa-solid fa-lock"></i> Document PIN</h3>
+                    <form id="changePinForm">
+                        <div class="form-group">
+                            <label>Admin Password</label>
+                            <input type="password" id="pinAdminPass" class="input-base" required placeholder="Enter password to authorize">
+                        </div>
+                        <div class="form-group">
+                            <label>New 4-Digit PIN</label>
+                            <input type="password" id="newPin" class="input-base" required maxlength="4" pattern="\d{4}" placeholder="e.g. 2511">
+                        </div>
+                        <button type="submit" class="btn-secondary full-width">Change Access PIN</button>
                     </form>
                 </div>
             </aside>

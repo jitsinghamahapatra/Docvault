@@ -71,11 +71,18 @@ const initAdmin = async () => {
         if (!adminExists) {
             const salt = await bcrypt.genSalt(10);
             const hashedPassword = await bcrypt.hash('1234', salt);
+            const hashedPin = await bcrypt.hash('2511', salt);
             const newAdmin = new Admin({
                 username: 'admin',
-                password: hashedPassword
+                password: hashedPassword,
+                documentPin: hashedPin
             });
             await newAdmin.save();
+        } else if (!adminExists.documentPin) {
+            const salt = await bcrypt.genSalt(10);
+            const hashedPin = await bcrypt.hash('2511', salt);
+            adminExists.documentPin = hashedPin;
+            await adminExists.save();
         }
     } catch (err) {
         console.error('Error initializing admin', err);

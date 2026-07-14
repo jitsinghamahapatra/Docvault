@@ -56,6 +56,26 @@
         </div>
     </main>
 
+    <!-- PIN Verification Modal -->
+    <div id="pinModal" class="modal-backdrop hidden">
+        <div class="modal-content">
+            <button id="closeModalBtn" class="btn-close">&times;</button>
+            <div class="modal-header">
+                <i class="fa-solid fa-lock modal-icon"></i>
+                <h2>Secure Access</h2>
+                <p>Please enter the 4-digit security PIN to view or download this document.</p>
+            </div>
+            <div class="pin-input-group">
+                <input type="password" inputmode="numeric" pattern="[0-9]*" maxlength="1" class="pin-digit" autocomplete="off">
+                <input type="password" inputmode="numeric" pattern="[0-9]*" maxlength="1" class="pin-digit" autocomplete="off">
+                <input type="password" inputmode="numeric" pattern="[0-9]*" maxlength="1" class="pin-digit" autocomplete="off">
+                <input type="password" inputmode="numeric" pattern="[0-9]*" maxlength="1" class="pin-digit" autocomplete="off">
+            </div>
+            <div id="pinErrorMsg" class="pin-error-msg hidden">Incorrect PIN. Please try again.</div>
+            <button id="verifyPinBtn" class="btn-primary full-width">Verify & Open</button>
+        </div>
+    </div>
+
     <footer style="text-align: center; padding: 2rem; font-family: 'VT323', monospace; font-size: 1.2rem; color: var(--text-muted); margin-top: 4rem;">
         Made By Jit Singha Mahapatra
     </footer>

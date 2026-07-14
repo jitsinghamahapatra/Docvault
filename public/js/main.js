@@ -160,3 +160,182 @@ function renderDocs(docs) {
         grid.appendChild(card);
     });
 }
+
+// PIN Protection System Front-end controller
+let pendingAnchor = null;
+let isAdminUser = false;
+
+// Check Admin status on load to allow bypass
+async function checkAdminStatus() {
+    try {
+        const res = await fetch('/api/auth/status');
+        const data = await res.json();
+        isAdminUser = res.ok && data.isAuthenticated;
+    } catch (e) {
+        // ignore
+    }
+}
+checkAdminStatus();
+
+document.addEventListener('DOMContentLoaded', () => {
+    const grid = document.getElementById('document-grid');
+    const pinModal = document.getElementById('pinModal');
+    const closeModalBtn = document.getElementById('closeModalBtn');
+    const verifyPinBtn = document.getElementById('verifyPinBtn');
+    const pinDigits = Array.from(document.querySelectorAll('.pin-digit'));
+    const pinErrorMsg = document.getElementById('pinErrorMsg');
+
+    if (!grid || !pinModal) return;
+
+    // Intercept click on document View / Download links
+    grid.addEventListener('click', function(e) {
+        const anchor = e.target.closest('.doc-actions a');
+        if (!anchor) return;
+
+        // Admin bypass
+        if (isAdminUser) {
+            return; // Let default action proceed
+        }
+
+        const savedPin = sessionStorage.getItem('docVaultPin');
+        if (savedPin) {
+            // Append pin to URL and navigate
+            e.preventDefault();
+            navigateWithPin(anchor, savedPin);
+            return;
+        }
+
+        // Prompt for PIN
+        e.preventDefault();
+        pendingAnchor = anchor;
+        openPinModal();
+    });
+
+    function navigateWithPin(anchor, pin) {
+        const targetUrl = new URL(anchor.href, window.location.origin);
+        targetUrl.searchParams.set('pin', pin);
+
+        const tempLink = document.createElement('a');
+        tempLink.href = targetUrl.toString();
+        
+        if (anchor.hasAttribute('download')) {
+            tempLink.setAttribute('download', anchor.getAttribute('download') || 'file');
+        } else {
+            tempLink.target = '_blank';
+        }
+        
+        document.body.appendChild(tempLink);
+        tempLink.click();
+        tempLink.remove();
+    }
+
+    // OTP Inputs navigation
+    pinDigits.forEach((input, idx) => {
+        // Handle inputting a digit
+        input.addEventListener('input', (e) => {
+            const value = e.target.value;
+            // Only keep last char if they typed something
+            if (value.length > 0) {
+                e.target.value = value.charAt(value.length - 1);
+                if (idx < pinDigits.length - 1) {
+                    pinDigits[idx + 1].focus();
+                }
+            }
+        });
+
+        // Handle keys (Backspace to delete/go back, Enter to submit)
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Backspace') {
+                if (e.target.value === '' && idx > 0) {
+                    pinDigits[idx - 1].focus();
+                    pinDigits[idx - 1].value = '';
+                } else {
+                    e.target.value = '';
+                }
+            } else if (e.key === 'Enter') {
+                e.preventDefault();
+                verifyPinBtn.click();
+            }
+        });
+
+        // Auto-select text on focus for easier overwriting
+        input.addEventListener('focus', () => {
+            input.select();
+        });
+
+        // Handle paste events (e.g. paste '2511')
+        input.addEventListener('paste', (e) => {
+            e.preventDefault();
+            const pasteData = (e.clipboardData || window.clipboardData).getData('text').trim();
+            if (/^\d+$/.test(pasteData)) {
+                for (let i = 0; i < pinDigits.length; i++) {
+                    if (pasteData[i]) {
+                        pinDigits[i].value = pasteData[i];
+                    }
+                }
+                pinDigits[Math.min(pasteData.length - 1, pinDigits.length - 1)].focus();
+            }
+        });
+    });
+
+    function openPinModal() {
+        pinModal.classList.remove('hidden');
+        pinErrorMsg.classList.add('hidden');
+        pinDigits.forEach(input => input.value = '');
+        setTimeout(() => pinDigits[0].focus(), 100);
+    }
+
+    function closePinModal() {
+        pinModal.classList.add('hidden');
+        pendingAnchor = null;
+    }
+
+    closeModalBtn.addEventListener('click', closePinModal);
+    pinModal.addEventListener('click', (e) => {
+        if (e.target === pinModal) closePinModal();
+    });
+
+    // Verification Logic
+    verifyPinBtn.addEventListener('click', async () => {
+        const pin = pinDigits.map(input => input.value).join('');
+        if (pin.length !== 4) {
+            showError('Please enter a 4-digit PIN.');
+            return;
+        }
+
+        try {
+            verifyPinBtn.disabled = true;
+            verifyPinBtn.textContent = 'Verifying...';
+            
+            const res = await fetch('/api/auth/verify-pin', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ pin })
+            });
+
+            const data = await res.json();
+            
+            if (res.ok && data.success) {
+                sessionStorage.setItem('docVaultPin', pin);
+                closePinModal();
+                if (pendingAnchor) {
+                    navigateWithPin(pendingAnchor, pin);
+                }
+            } else {
+                showError(data.error || 'Incorrect PIN.');
+            }
+        } catch (err) {
+            showError('Connection error. Try again.');
+        } finally {
+            verifyPinBtn.disabled = false;
+            verifyPinBtn.textContent = 'Verify & Open';
+        }
+    });
+
+    function showError(msg) {
+        pinErrorMsg.textContent = msg;
+        pinErrorMsg.classList.remove('hidden');
+        pinDigits.forEach(input => input.value = '');
+        pinDigits[0].focus();
+    }
+});

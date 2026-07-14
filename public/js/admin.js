@@ -257,6 +257,28 @@ document.addEventListener('DOMContentLoaded', async () => {
         } catch (error) {
             tbody.innerHTML = '<tr><td colspan="4">Failed to load documents.</td></tr>';
         }
+        updateStorageStatus();
+    }
+
+    async function updateStorageStatus() {
+        try {
+            const res = await fetch('/api/documents/storage');
+            if (!res.ok) return;
+            const data = await res.json();
+            
+            const usedMb = (data.usedBytes / (1024 * 1024)).toFixed(2);
+            const totalMb = (data.totalBytes / (1024 * 1024)).toFixed(0);
+            
+            const storageText = document.getElementById('storageText');
+            const storageBar = document.getElementById('storageBar');
+            const storagePercentText = document.getElementById('storagePercentText');
+            
+            if (storageText) storageText.textContent = `${usedMb} MB / ${totalMb} MB Used`;
+            if (storageBar) storageBar.style.width = `${data.percentUsed}%`;
+            if (storagePercentText) storagePercentText.textContent = `${data.percentUsed}% Used`;
+        } catch (err) {
+            console.error('Error fetching storage status', err);
+        }
     }
 
     document.getElementById('refreshBtn').addEventListener('click', loadDocuments);
@@ -285,5 +307,32 @@ document.addEventListener('DOMContentLoaded', async () => {
             showToast('Server error', 'error');
         }
     });
+
+    // Change Access PIN
+    const changePinForm = document.getElementById('changePinForm');
+    if (changePinForm) {
+        changePinForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const currentPassword = document.getElementById('pinAdminPass').value;
+            const newPin = document.getElementById('newPin').value;
+
+            try {
+                const res = await fetch('/api/auth/change-pin', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ currentPassword, newPin })
+                });
+                const data = await res.json();
+                if(res.ok) {
+                    showToast('Access PIN updated successfully! ✓');
+                    changePinForm.reset();
+                } else {
+                    showToast(data.error || 'Failed to update PIN', 'error');
+                }
+            } catch(err) {
+                showToast('Server error', 'error');
+            }
+        });
+    }
 
 });

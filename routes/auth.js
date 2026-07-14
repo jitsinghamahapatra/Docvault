@@ -67,4 +67,53 @@ router.get('/status', (req, res) => {
     }
 });
 
+// Verify Access PIN
+router.post('/verify-pin', async (req, res) => {
+    try {
+        const { pin } = req.body;
+        if (!pin) {
+            return res.status(400).json({ error: 'PIN is required' });
+        }
+        const admin = await Admin.findOne({ username: 'admin' });
+        if (!admin) {
+            return res.status(404).json({ error: 'Admin config not found' });
+        }
+        const isMatch = await bcrypt.compare(pin, admin.documentPin);
+        if (isMatch) {
+            return res.json({ success: true, message: 'PIN verified successfully' });
+        } else {
+            return res.status(400).json({ success: false, error: 'Incorrect PIN' });
+        }
+    } catch (error) {
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// Change Access PIN (must be logged in)
+router.post('/change-pin', authMiddleware, async (req, res) => {
+    try {
+        const { currentPassword, newPin } = req.body;
+        if (!currentPassword || !newPin) {
+            return res.status(400).json({ error: 'Current password and new PIN are required' });
+        }
+        if (!/^\d{4}$/.test(newPin)) {
+            return res.status(400).json({ error: 'PIN must be a 4-digit number' });
+        }
+        const admin = await Admin.findById(req.admin.id);
+        if (!admin) {
+            return res.status(404).json({ error: 'Admin not found' });
+        }
+        const isMatch = await bcrypt.compare(currentPassword, admin.password);
+        if (!isMatch) {
+            return res.status(400).json({ error: 'Incorrect current password' });
+        }
+        const salt = await bcrypt.genSalt(10);
+        admin.documentPin = await bcrypt.hash(newPin, salt);
+        await admin.save();
+        res.json({ success: true, message: 'Access PIN updated successfully' });
+    } catch (error) {
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
 module.exports = router;
